@@ -1,0 +1,116 @@
+---
+title: "análisis inferencial 2022"
+author: "Belmonte Valeria"
+date: "`r Sys.Date()`"
+output:
+  word_document: default
+  html_document: default
+  encoding: "UTF-8"
+
+---
+
+```{r message=FALSE, , echo=FALSE}
+library(tidyverse)
+library(viridis)  #Para seleccionar paletas de color
+library(ggthemes) #Para elegir temas o plantillas de diseño para tu gráfico
+library(hrbrthemes)#Para elegir más temas o plantillas de diseño para tu gráfico
+library(flextable)# para dibujar tablas elegantes
+library(DT) # para tablas grandes
+#Sys.setlocale(category = "LC_ALL", locale = "Spanish")
+library(ggthemes) # temas para los fondos de los graficos ggplot
+library(paletteer) # para instalar paleta de colores
+library(treemap)
+options(OutDec = ",")
+options(encoding = 'UTF-8')
+```
+
+```{r, echo=FALSE,,eval=FALSE}
+#limpio la base antes de correr 
+rm(list=ls())
+```
+##cargo los datos con caracteristicas de los estudiantes
+
+
+La base **ingresantes2023** todos los ingresantes  2022, con los resultados de regualridad en ese año por carrera  
+
+```{r, echo=FALSE}
+library(readxl)
+ingresantes_2022<- read_excel("../datos originales/ingresantes2022_caract_condicion.xlsx",
+na = "NA")
+```
+
+```{r}
+# reacomodo algunas  variables y creo otras
+
+# Crear la nueva variable en el dataframe
+ingresantes_2022$Otros_Est_Sup_indicator <- ifelse(is.na(ingresantes_2022$Otros_Est_Sup), 0, 1)
+# corrijo Datos_Salud,_Cobertura_Médica
+ingresantes_2022=ingresantes_2022 %>%rename("Cobertura_medica"="Datos_Salud,_Cobertura_Médica")
+```
+
+```{r}
+str(ingresantes_2022)
+```
+
+
+```{r, echo=FALSE,eval=FALSE}
+#library(glm)
+# Ajustar el modelo de regresión logística
+
+m1<- glm(reincriptos_23 ~Carrera+ Estado_Civil+Genero+Situacion_Ocupacional_Alumno+as.factor(Otros_Est_Sup_indicator) +Porc_Regularizadas+edad+as.factor(asitio_alguna_materia )+Cobertura_medica +Estudios_Madre+Estudios_Padre+ Año_Egreso,
+data = ingresantes_2022,
+family = binomial)
+# Resumen del modelo
+summary(m1)
+```
+## Voy a hacer ua selección de modelo
+```{r seleccion del modelo}
+step(m1,direction="backward")
+```
+
+```{r}
+m2=glm(formula = reincriptos_23 ~ Carrera + Estado_Civil + Genero + 
+    Situacion_Ocupacional_Alumno + Porc_Regularizadas + edad + 
+    as.factor(asitio_alguna_materia) + Cobertura_medica + Estudios_Madre + 
+    Estudios_Padre + Año_Egreso, family = binomial, data = ingresantes_2022)
+step(m2,direction="backward")
+```
+```{r}
+summary(m2)
+```
+
+```{r}
+#elimine asisitio a alguna materia
+m3=glm(formula = reincriptos_23 ~ Carrera + Estado_Civil + Genero + 
+    Situacion_Ocupacional_Alumno + Porc_Regularizadas + edad +  Cobertura_medica + Estudios_Madre + 
+    Estudios_Padre + Año_Egreso, family = binomial, data = ingresantes_2022)
+step(m3,direction="backward")
+```
+
+```{r}
+# Eliminar filas con NA en las variables usadas en el modelo
+ingresantes_2022_clean <- na.omit(ingresantes_2022[, c("reincriptos_23", "Carrera", "Genero", "Estado_Civil","Cost_est__aporte_familiar", "Situacion_Ocupacional_Alumno" , "Porc_Regularizadas", "edad", "Estudios_Madre", "Estudios_Padre")])
+nrow(ingresantes_2022_clean)
+nrow(ingresantes_2022)
+
+# Ajustar el modelo sin valores faltantes
+#m3 <- glm(reincriptos_23 ~ Carrera + Genero + Porc_Regularizadas + edad + Estudios_Madre + Estudios_Padre + Año_Egreso, data = ingresantes_2022_clean, family = binomial)
+```
+
+Hay un estudiante de IA que no informa el estado civil
+Cuantos no  informan el año de egreso 41,  son 27 de IA, 14   de LANA 
+No se puede incluir en el modelo
+Cuantos no informan  cobertura medica: 59  , 19 IA, 28 de LANA, y 12 de TPVI
+
+una  varaible que conserva 224 estuiantes es "Tiene_beca?" que podría tambien probar si puede agregarse.
+
+
+## Corro el  modelo con las varaibles que tienen información de todos los estudiantes
+
+```{r}
+#elimine asisitio a alguna materia
+m4=glm(formula = reincriptos_23 ~ Carrera + Estado_Civil + Genero + 
+    Situacion_Ocupacional_Alumno + Cost_est__aporte_familiar+Porc_Regularizadas + edad +  Cobertura_medica + Estudios_Madre + Estudios_Padre + Año_Egreso, family = binomial, data = ingresantes_2022)
+step(m4,direction="backward")
+ 
+```
