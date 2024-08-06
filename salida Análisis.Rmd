@@ -8,8 +8,8 @@ output:
   encoding: "UTF-8"
 
 ---
-
-```{r message=FALSE, , echo=FALSE}
+## carga de paquetes
+```{r  message=FALSE, , echo=FALSE}
 library(tidyverse)
 library(viridis)  #Para seleccionar paletas de color
 library(ggthemes) #Para elegir temas o plantillas de diseño para tu gráfico
@@ -23,8 +23,8 @@ library(treemap)
 options(OutDec = ",")
 options(encoding = 'UTF-8')
 ```
-
-```{r, echo=FALSE,,eval=FALSE}
+## Borro los datos 
+```{r, echo=FALSE}
 #limpio la base antes de correr 
 rm(list=ls())
 ```
@@ -33,13 +33,13 @@ rm(list=ls())
 
 La base **ingresantes2023** todos los ingresantes  2022, con los resultados de regualridad en ese año por carrera  
 
-```{r, echo=FALSE}
+```{r carga de datos, echo=FALSE}
 library(readxl)
 ingresantes_2022<- read_excel("../datos originales/ingresantes2022_caract_condicion.xlsx",
 na = "NA")
 ```
 
-```{r}
+```{r reordeno los datos, echo=FALSE}
 # reacomodo algunas  variables y creo otras
 
 # Crear la nueva variable en el dataframe
@@ -48,16 +48,41 @@ ingresantes_2022$Otros_Est_Sup_indicator <- ifelse(is.na(ingresantes_2022$Otros_
 ingresantes_2022=ingresantes_2022 %>%rename("Cobertura_medica"="Datos_Salud,_Cobertura_Médica")
 ```
 
-```{r}
+```{r veo la estructura de los datos, echo=FALSE}
 str(ingresantes_2022)
 ```
+
+## Resumen de los datos 
+```{r, resumen de reincriptos 2023, echo=FALSE}
+resumen_reincriptos_23=ingresantes_2022 %>% group_by(reincriptos_23)%>%  summarise(n=n())
+resumen_reincriptos_23 %>% flextable()
+```
+
+En  función de En la regla de "eventos por variable predictora" (EPV)  
+tenemos = n(1)/ v. predictoras= 10; entonces;  114/5= v predictoras daría 11 variables predicotoras
+además  n(0)=125/v predictoras = 10 -> 12 variables predictoras 
+
+por lo tanto no está muy desbalanceados 
+
 
 
 ```{r, echo=FALSE,eval=FALSE}
 #library(glm)
 # Ajustar el modelo de regresión logística
-
-m1<- glm(reincriptos_23 ~Carrera+ Estado_Civil+Genero+Situacion_Ocupacional_Alumno+as.factor(Otros_Est_Sup_indicator) +Porc_Regularizadas+edad+as.factor(asitio_alguna_materia )+Cobertura_medica +Estudios_Madre+Estudios_Padre+ Año_Egreso,
+# modelo 1  tiene 12 varibles 
+m1<- glm(reincriptos_23 ~
+           Carrera+
+           Estado_Civil+
+           Genero+
+           Situacion_Ocupacional_Alumno+
+           as.factor(Otros_Est_Sup_indicator) +
+           Porc_Regularizadas+
+           edad+
+           as.factor(asitio_alguna_materia )+
+           Cobertura_medica+
+           Estudios_Madre+
+           Estudios_Padre+
+           Año_Egreso,
 data = ingresantes_2022,
 family = binomial)
 # Resumen del modelo
@@ -65,14 +90,22 @@ summary(m1)
 ```
 ## Voy a hacer ua selección de modelo
 ```{r seleccion del modelo}
-step(m1,direction="backward")
+step(m1,direction = "both")
 ```
 
 ```{r}
-m2=glm(formula = reincriptos_23 ~ Carrera + Estado_Civil + Genero + 
-    Situacion_Ocupacional_Alumno + Porc_Regularizadas + edad + 
-    as.factor(asitio_alguna_materia) + Cobertura_medica + Estudios_Madre + 
-    Estudios_Padre + Año_Egreso, family = binomial, data = ingresantes_2022)
+m2=glm(formula = reincriptos_23 ~ 
+         Carrera + 
+         Estado_Civil +
+         Genero + 
+    Situacion_Ocupacional_Alumno +
+      Porc_Regularizadas +
+      edad + 
+    as.factor(asitio_alguna_materia) +
+      Cobertura_medica + Estudios_Madre + 
+    Estudios_Padre +
+      Año_Egreso,
+    family = binomial, data = ingresantes_2022)
 step(m2,direction="backward")
 ```
 ```{r}
@@ -81,10 +114,19 @@ summary(m2)
 
 ```{r}
 #elimine asisitio a alguna materia
-m3=glm(formula = reincriptos_23 ~ Carrera + Estado_Civil + Genero + 
-    Situacion_Ocupacional_Alumno + Porc_Regularizadas + edad +  Cobertura_medica + Estudios_Madre + 
-    Estudios_Padre + Año_Egreso, family = binomial, data = ingresantes_2022)
-step(m3,direction="backward")
+m3=glm(formula = reincriptos_23 ~
+         Carrera + 
+         Estado_Civil +
+         Genero + 
+    Situacion_Ocupacional_Alumno +
+      Porc_Regularizadas +
+      edad +
+      Cobertura_medica +
+      Estudios_Madre + 
+    Estudios_Padre +
+      Año_Egreso,
+    family = binomial, data = ingresantes_2022)
+summary(m3)
 ```
 
 ```{r}
@@ -93,24 +135,71 @@ ingresantes_2022_clean <- na.omit(ingresantes_2022[, c("reincriptos_23", "Carrer
 nrow(ingresantes_2022_clean)
 nrow(ingresantes_2022)
 
-# Ajustar el modelo sin valores faltantes
-#m3 <- glm(reincriptos_23 ~ Carrera + Genero + Porc_Regularizadas + edad + Estudios_Madre + Estudios_Padre + Año_Egreso, data = ingresantes_2022_clean, family = binomial)
+
 ```
 
+```{r}
+str(ingresantes_2022_clean)
+```
+
+
+
+
 Hay un estudiante de IA que no informa el estado civil
-Cuantos no  informan el año de egreso 41,  son 27 de IA, 14   de LANA 
+Cuantos no  informan el año de egreso: 41,donde   27 son de IA, 14   de LANA 
 No se puede incluir en el modelo
 Cuantos no informan  cobertura medica: 59  , 19 IA, 28 de LANA, y 12 de TPVI
 
-una  varaible que conserva 224 estuiantes es "Tiene_beca?" que podría tambien probar si puede agregarse.
+una  variable que conserva 224 estudiantes es "Tiene_beca?" que podría tambien probar si puede agregarse.
 
 
 ## Corro el  modelo con las varaibles que tienen información de todos los estudiantes
 
+
 ```{r}
-#elimine asisitio a alguna materia
-m4=glm(formula = reincriptos_23 ~ Carrera + Estado_Civil + Genero + 
-    Situacion_Ocupacional_Alumno + Cost_est__aporte_familiar+Porc_Regularizadas + edad +  Cobertura_medica + Estudios_Madre + Estudios_Padre + Año_Egreso, family = binomial, data = ingresantes_2022)
-step(m4,direction="backward")
- 
+# Ajustar el modelo sin valores faltantes
+m4 <- glm(reincriptos_23 ~ 
+            Carrera +
+            Genero +
+            Estado_Civil+
+            Cost_est__aporte_familiar+
+            Situacion_Ocupacional_Alumno+
+            Porc_Regularizadas + 
+            edad +
+            Estudios_Madre + 
+            Estudios_Padre ,
+          data = ingresantes_2022_clean, family = binomial)
 ```
+```{r}
+summary(m4)
+```
+```{r}
+step(m4)
+```
+
+```{r}
+# Ajustar el modelo sin valores faltantes
+m5 <- glm(reincriptos_23 ~ 
+            Carrera +
+            Genero +
+            Cost_est__aporte_familiar+
+            Porc_Regularizadas 
+           ,
+          data = ingresantes_2022_clean, family = binomial)
+```
+
+
+```{r}
+summary(m5)
+```
+```{r}
+# Ajustar el modelo sin valores faltantes
+m6 <- glm(reincriptos_23 ~ 
+            Carrera +
+            Cost_est__aporte_familiar+
+            Porc_Regularizadas 
+           ,
+          data = ingresantes_2022_clean, family = binomial)
+summary(m6)
+```
+
